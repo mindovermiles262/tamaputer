@@ -157,10 +157,10 @@ void setup() {
     M5Cardputer.Display.fillScreen(TFT_BLACK);
     M5Cardputer.Display.setTextSize(3);
     M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.setCursor(30, 50);
+    M5Cardputer.Display.setCursor(10, 50);
     M5Cardputer.Display.println("TAMAPUTER");
     M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setCursor(20, 80);
+    M5Cardputer.Display.setCursor(5, 80);
     M5Cardputer.Display.println("Tamagotchi Emulator");
     delay(1000);
 
@@ -184,26 +184,11 @@ void setup() {
     USBSerial.println("Registering HAL...");
     tamalib_register_hal(&hal);
 
-    // Initialize tamalib with loaded ROM
-    USBSerial.println("Initializing tamalib...");
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setCursor(0, 40);
-    M5Cardputer.Display.println("Initializing emulator...");
-    M5Cardputer.Display.print("ROM size: ");
-    M5Cardputer.Display.print(rom_size);
-    M5Cardputer.Display.println(" bytes");
-    M5Cardputer.Display.print("u12_t words: ");
-    M5Cardputer.Display.println(rom_size / sizeof(u12_t));
-    USBSerial.print("ROM size: ");
-    USBSerial.print(rom_size);
-    USBSerial.print(" bytes, ");
-    USBSerial.print(rom_size / sizeof(u12_t));
-    USBSerial.println(" u12_t words");
-    delay(2000);
-
     // Note: tamalib_init returns 0 on SUCCESS (Unix convention)
+    // Tamagotchi runs at 32768 Hz, so timestamps should be in units of ~30.5 us
+    // Use 32768 for timestamp frequency (timestamps in 1/32768 second units)
     USBSerial.println("Calling tamalib_init...");
-    int init_result = tamalib_init(g_program, NULL, 1000000);
+    int init_result = tamalib_init(g_program, NULL, 32768);
     USBSerial.print("tamalib_init returned: ");
     USBSerial.println(init_result);
 
@@ -217,14 +202,10 @@ void setup() {
     }
 
     USBSerial.println("Tamalib init SUCCESS!");
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.println("Init OK!");
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    delay(1000);
 
     USBSerial.println("Displaying ready screen...");
     M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setCursor(0, 40);
+    M5Cardputer.Display.setCursor(0, 10);
     M5Cardputer.Display.setTextSize(3);
     M5Cardputer.Display.setTextColor(TFT_GREEN);
     M5Cardputer.Display.println(" Ready!");
@@ -271,7 +252,7 @@ void loop() {
         }
 
         // Feed watchdog and yield to system tasks
-        yield();
+        // yield();
     } else {
         // ROM not loaded, just idle
         delay(100);

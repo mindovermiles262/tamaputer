@@ -162,23 +162,27 @@ void hal_update_screen(void) {
     updateDisplay();
 }
 
-// HAL callback: Get current timestamp in milliseconds
+// HAL callback: Get current timestamp in 1/32768 second units
 timestamp_t hal_get_timestamp(void) {
-    return (timestamp_t)millis();
+    // Convert microseconds to 1/32768 second units
+    // 1/32768 second = ~30.5 microseconds
+    return (timestamp_t)(micros() / 30.5);
 }
 
 // HAL callback: Sleep until timestamp
 void hal_sleep_until(timestamp_t ts) {
     timestamp_t now = hal_get_timestamp();
     if (ts > now) {
-        delay(ts - now);
+        // Convert timestamp units (1/32768 s) to microseconds
+        unsigned long delay_us = (ts - now) * 30.5;
+        delayMicroseconds(delay_us);
     }
 }
 
 // HAL callback: Check if logging is enabled for a level
 bool_t hal_is_log_enabled(log_level_t level) {
-    // Disable ALL logging for performance
-    return 0;
+    // Enable interrupt and error logging to see if timers are firing
+    return (level == LOG_ERROR || level == LOG_INT) ? 1 : 0;
 }
 
 // HAL callback: Log messages
