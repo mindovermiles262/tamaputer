@@ -4,7 +4,7 @@
 #include <M5Cardputer.h>
 
 extern "C" {
-#include <tamalib.h>
+    #include <tamalib.h>
 }
 
 // Tamagotchi LCD dimensions

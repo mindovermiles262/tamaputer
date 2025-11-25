@@ -1,6 +1,12 @@
-#include "tamalib_hal.h"
+/*
+    This is the translation layer between the tamalib functions and how the cardputer
+    executes instructions
+*/
+
+#include "tamalib_cardputer_hal.h"
 #include <stdarg.h>
 #include <M5Cardputer.h>
+#include "bitmaps.h"
 
 // LCD matrix buffer
 static bool_t lcd_matrix[LCD_HEIGHT][LCD_WIDTH];
@@ -13,86 +19,62 @@ static bool_t button_left = 0;
 static bool_t button_middle = 0;
 static bool_t button_right = 0;
 
-// Display needs update flag
-static bool display_dirty = false;
+#define TAMA_PIXEL_SIZE 5 // Scale factor for Tamagotchi pixels
+static bool_t icon_buffer[ICON_NUM] = {0};
 
-void initDisplay() {
-    USBSerial.println("initDisplay() called - clearing screen");
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-    M5Cardputer.Display.setTextSize(1);
-
-    // Clear the LCD matrix
-    for (int y = 0; y < LCD_HEIGHT; y++) {
-        for (int x = 0; x < LCD_WIDTH; x++) {
-            lcd_matrix[y][x] = 0;
-        }
-    }
-
-    // Clear icons
-    for (int i = 0; i < ICON_COUNT; i++) {
-        lcd_icons[i] = 0;
-    }
-
-    // Force an initial display update to show the background
-    display_dirty = true;
-    updateDisplay();
-    USBSerial.println("initDisplay() complete");
+void drawTriangle(uint16_t x, uint16_t y) {
+  // Draw a simple downward pointing triangle for icon selection
+  M5Cardputer.Display.fillTriangle(x+3, y, x, y+3, x+6, y+3, TFT_WHITE);
 }
 
-static unsigned long display_update_count = 0;
+void drawIconBitmap(uint16_t x, uint16_t y, const uint8_t* bitmap) {
+  // Draw 16x9 icon bitmap
+  for (int by = 0; by < 9; by++) {
+    for (int bx = 0; bx < 16; bx++) {
+      uint8_t byte_idx = (by * 2) + (bx / 8);
+      uint8_t bit_idx = 7 - (bx % 8);
+      if (bitmap[byte_idx] & (1 << bit_idx)) {
+        M5Cardputer.Display.fillRect(x + bx * 2, y + by * 2, 2, 2, TFT_WHITE);
+      }
+    }
+  }
+}
+
 void updateDisplay() {
-    display_update_count++;
+  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  // Calculate centering offsets
+  uint16_t displayStartX = 20;
+  uint16_t displayStartY = 10;
 
-    if (display_update_count % 100 == 0) {
-        USBSerial.print("updateDisplay #");
-        USBSerial.print(display_update_count);
-        USBSerial.print(" dirty=");
-        USBSerial.println(display_dirty);
+  // Draw the Tamagotchi LCD matrix (32x16 pixels, scaled up)
+  for (uint8_t y = 0; y < LCD_HEIGHT; y++) {
+    for (uint8_t x = 0; x < LCD_WIDTH; x++) {
+      if (lcd_matrix[y][x]) {
+        // Draw pixel scaled up by TAMA_PIXEL_SIZE
+        M5Cardputer.Display.fillRect(
+          displayStartX + x * TAMA_PIXEL_SIZE,
+          displayStartY + y * TAMA_PIXEL_SIZE,
+          TAMA_PIXEL_SIZE,
+          TAMA_PIXEL_SIZE,
+          TFT_WHITE
+        );
+      }
+    }
+  }
+
+  // Draw icon selection row at the bottom
+  uint16_t iconY = displayStartY + (LCD_HEIGHT * TAMA_PIXEL_SIZE) + 10;
+  for (uint8_t i = 0; i < ICON_NUM; i++) {
+    uint16_t iconX = displayStartX + i * 28;
+
+    // Draw selection triangle if icon is selected
+    if (lcd_icons[i]) {
+      drawTriangle(iconX + 6, iconY);
     }
 
-    if (!display_dirty) return;
-
-    if (display_update_count % 100 == 0) {
-        USBSerial.println("Drawing display...");
-    }
-
-    // Calculate offset to center the display
-    int offsetX = (M5Cardputer.Display.width() - (LCD_WIDTH * PIXEL_SIZE)) / 2;
-    int offsetY = 20; // Leave space at top for icons
-
-    // Draw LCD matrix
-    int pixels_on = 0;
-    for (int y = 0; y < LCD_HEIGHT; y++) {
-        for (int x = 0; x < LCD_WIDTH; x++) {
-            if (lcd_matrix[y][x]) pixels_on++;
-            uint16_t color = lcd_matrix[y][x] ? TFT_BLACK : TFT_LIGHTGREY;
-            M5Cardputer.Display.fillRect(
-                offsetX + x * PIXEL_SIZE,
-                offsetY + y * PIXEL_SIZE,
-                PIXEL_SIZE - 1,
-                PIXEL_SIZE - 1,
-                color
-            );
-        }
-    }
-
-    if (display_update_count % 100 == 0 || pixels_on > 0) {
-        USBSerial.print("Pixels on: ");
-        USBSerial.println(pixels_on);
-    }
-
-    // Draw icons at the top
-    const char* icon_names[] = {"FOOD", "GAME", "LIGHT", "DUCK", "MAIL", "CALL", "ATT", "DISC"};
-    int iconX = 10;
-    for (int i = 0; i < ICON_COUNT; i++) {
-        M5Cardputer.Display.setTextColor(lcd_icons[i] ? TFT_WHITE : TFT_DARKGREY, TFT_BLACK);
-        M5Cardputer.Display.setCursor(iconX, 5);
-        M5Cardputer.Display.print(icon_names[i]);
-        iconX += 35;
-    }
-
-    display_dirty = false;
+    // Draw the icon bitmap
+    drawIconBitmap(iconX, iconY + 8, bitmaps + i * 18);
+  }
 }
 
 void handleInput() {
@@ -119,14 +101,7 @@ static unsigned long pixel_set_count = 0;
 void hal_set_lcd_matrix(u8_t x, u8_t y, bool_t val) {
     if (x < LCD_WIDTH && y < LCD_HEIGHT) {
         lcd_matrix[y][x] = val;
-        display_dirty = true;
         pixel_set_count++;
-
-        // Debug: print periodic pixel stats
-        if (pixel_set_count % 50 == 0) {
-            USBSerial.print("Pixel updates: ");
-            USBSerial.println(pixel_set_count);
-        }
     }
 }
 
@@ -134,7 +109,6 @@ void hal_set_lcd_matrix(u8_t x, u8_t y, bool_t val) {
 void hal_set_lcd_icon(u8_t icon, bool_t val) {
     if (icon < ICON_COUNT) {
         lcd_icons[icon] = val;
-        display_dirty = true;
     }
 }
 
@@ -148,9 +122,7 @@ void hal_play_frequency(bool_t en) {
     // Not implemented for now
 }
 
-// HAL callback: Called when CPU halts
 void hal_halt(void) {
-    // Handle halt condition
     M5Cardputer.Display.fillScreen(TFT_RED);
     M5Cardputer.Display.setCursor(50, 60);
     M5Cardputer.Display.println("CPU HALTED");
@@ -181,12 +153,17 @@ void hal_sleep_until(timestamp_t ts) {
 
 // HAL callback: Check if logging is enabled for a level
 bool_t hal_is_log_enabled(log_level_t level) {
-    // Enable interrupt and error logging to see if timers are firing
-    return (level == LOG_ERROR || level == LOG_INT) ? 1 : 0;
+    // return (level == LOG_ERROR || level == LOG_INT) ? 1 : 0;
+    return 0;  // Disable all logging
 }
 
 // HAL callback: Log messages
 void hal_log(log_level_t level, char *buff, ...) {
+    // Only log if enabled for this level
+    if (!hal_is_log_enabled(level)) {
+        return;
+    }
+
     // Print to serial for debugging
     char log_buffer[256];
     va_list args;
@@ -208,3 +185,4 @@ int hal_handler(void) {
 
     return 1; // Continue running
 }
+
