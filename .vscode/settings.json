@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "memory": "cpp"
-    }
+        "memory": "cpp",
+        "m5cardputer.h": "c"
+    },
+    "C_Cpp.default.compilerPath": "/home/doppio/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc"
 }

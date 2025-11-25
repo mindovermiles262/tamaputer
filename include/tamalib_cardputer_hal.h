@@ -7,15 +7,20 @@ extern "C" {
     #include <tamalib.h>
 }
 
+// Input controls
+#define M5_BTN_LEFT KEY_LEFT_CTRL
+#define M5_BTN_CENTER ' '
+#define M5_BTN_RIGHT KEY_BACKSPACE
+
 // Tamagotchi LCD dimensions
 #define LCD_WIDTH 32
 #define LCD_HEIGHT 16
 
+// Scale factor for display
+#define TAMA_PIXEL_SIZE 5
+
 // Icon positions
 #define ICON_COUNT 8
-
-// Scale factor for display
-#define PIXEL_SIZE 6
 
 // HAL callback functions required by tamalib
 extern "C" {
@@ -33,7 +38,6 @@ extern "C" {
 }
 
 // Helper functions
-void initDisplay();
 void updateDisplay();
 void handleInput();
 

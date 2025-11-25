@@ -10,6 +10,8 @@
 
 // LCD matrix buffer
 static bool_t lcd_matrix[LCD_HEIGHT][LCD_WIDTH];
+static bool_t icon_buffer[ICON_NUM] = {0};
+static bool_t matrix_buffer[LCD_HEIGHT][LCD_WIDTH/8] = {{0}};
 
 // LCD icons buffer
 static bool_t lcd_icons[ICON_COUNT];
@@ -19,8 +21,6 @@ static bool_t button_left = 0;
 static bool_t button_middle = 0;
 static bool_t button_right = 0;
 
-#define TAMA_PIXEL_SIZE 5 // Scale factor for Tamagotchi pixels
-static bool_t icon_buffer[ICON_NUM] = {0};
 
 void drawTriangle(uint16_t x, uint16_t y) {
   // Draw a simple downward pointing triangle for icon selection
@@ -79,16 +79,16 @@ void updateDisplay() {
 
 void handleInput() {
     M5Cardputer.update();
-
     // Map keyboard keys to Tamagotchi buttons
-    // Left button (A key)
     bool prev_left = button_left;
     bool prev_middle = button_middle;
     bool prev_right = button_right;
 
-    button_left = M5Cardputer.Keyboard.isKeyPressed('a');
-    button_middle = M5Cardputer.Keyboard.isKeyPressed('s');
-    button_right = M5Cardputer.Keyboard.isKeyPressed('d');
+    button_left = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_LEFT);
+    button_middle = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_CENTER) ||
+                    M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)  ||
+                    M5Cardputer.Keyboard.isKeyPressed(' ');
+    button_right = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_RIGHT);
 
     // Debug: print button state changes
     if (button_left && !prev_left) USBSerial.println("LEFT button pressed");
@@ -97,11 +97,9 @@ void handleInput() {
 }
 
 // HAL callback: Called when a pixel needs to be set/cleared
-static unsigned long pixel_set_count = 0;
 void hal_set_lcd_matrix(u8_t x, u8_t y, bool_t val) {
     if (x < LCD_WIDTH && y < LCD_HEIGHT) {
         lcd_matrix[y][x] = val;
-        pixel_set_count++;
     }
 }
 
@@ -136,25 +134,17 @@ void hal_update_screen(void) {
 
 // HAL callback: Get current timestamp in 1/32768 second units
 timestamp_t hal_get_timestamp(void) {
-    // Convert microseconds to 1/32768 second units
-    // 1/32768 second = ~30.5 microseconds
-    return (timestamp_t)(micros() / 30.5);
+    return millis() * 1000;
 }
 
 // HAL callback: Sleep until timestamp
 void hal_sleep_until(timestamp_t ts) {
-    timestamp_t now = hal_get_timestamp();
-    if (ts > now) {
-        // Convert timestamp units (1/32768 s) to microseconds
-        unsigned long delay_us = (ts - now) * 30.5;
-        delayMicroseconds(delay_us);
-    }
+  // Not Implemented
 }
 
 // HAL callback: Check if logging is enabled for a level
 bool_t hal_is_log_enabled(log_level_t level) {
-    // return (level == LOG_ERROR || level == LOG_INT) ? 1 : 0;
-    return 0;  // Disable all logging
+    return (level == LOG_ERROR || level == LOG_INT) ? 1 : 0;
 }
 
 // HAL callback: Log messages
@@ -177,7 +167,6 @@ void hal_log(log_level_t level, char *buff, ...) {
 // HAL callback: Handle button input
 int hal_handler(void) {
     handleInput();
-
     // Set button states using proper enum values
     tamalib_set_button(BTN_LEFT, button_left ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);
     tamalib_set_button(BTN_MIDDLE, button_middle ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);

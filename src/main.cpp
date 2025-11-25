@@ -16,19 +16,10 @@ extern "C" {
 
 #include "tamalib_cardputer_hal.h"
 
-// SD Card pins for M5Cardputer
-#define SD_SPI_SCK_PIN  40
-#define SD_SPI_MISO_PIN 39
-#define SD_SPI_MOSI_PIN 14
-#define SD_SPI_CS_PIN   12
-
-#define TAMA_DISPLAY_FRAMERATE  3
-
-static exec_mode_t exec_mode = EXEC_MODE_RUN;
-static u32_t step_depth = 0;
+// static exec_mode_t exec_mode = EXEC_MODE_RUN;
+// static u32_t step_depth = 0;
 static timestamp_t screen_ts = 0;
 static u32_t ts_freq;
-hal_t *g_hal;
 
 // HAL functions structure for tamalib (must match order in hal.h)
 static hal_t hal = {
@@ -59,7 +50,7 @@ void setup() {
     // Show splash screen
     M5Cardputer.Display.fillScreen(TFT_BLACK);
     M5Cardputer.Display.setTextSize(3);
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.setTextColor(TFT_GREEN);
     M5Cardputer.Display.setCursor(10, 50);
     M5Cardputer.Display.println("TAMAPUTER");
     M5Cardputer.Display.setTextSize(2);
@@ -87,9 +78,11 @@ void setup() {
 
     // Initialize TamaLib
     USBSerial.print("[*] Initializing Tamalib ... ");
-    tamalib_set_framerate(TAMA_DISPLAY_FRAMERATE);
+    // g_hal = &hal;  // Set global HAL pointer
     tamalib_register_hal(&hal);
-    tamalib_init(rom_data, NULL, 100);
+    tamalib_set_framerate(10);  // Set framerate to 10 FPS like arduinogotchi
+    ts_freq = 1000000;  // 1MHz
+    tamalib_init(rom_data, NULL, ts_freq);
     USBSerial.println("Done.");
 }
 
@@ -97,10 +90,8 @@ void loop() {
     timestamp_t ts;
     g_hal->handler();
     tamalib_step();
-
-    /* Update the screen @ g_framerate fps */
     ts = g_hal->get_timestamp();
-    if (ts - screen_ts >= ts_freq/TAMA_DISPLAY_FRAMERATE) {
+    if (ts - screen_ts >= ts_freq / 10) {  // Only update at ~10 FPS
         screen_ts = ts;
         g_hal->update_screen();
     }
