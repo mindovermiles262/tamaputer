@@ -4,7 +4,6 @@
 */
 
 #include "tamalib_cardputer_hal.h"
-#include <stdarg.h>
 #include <M5Cardputer.h>
 #include "bitmaps.h"
 
@@ -20,7 +19,9 @@ static bool_t lcd_icons[ICON_COUNT];
 static bool_t button_left = 0;
 static bool_t button_middle = 0;
 static bool_t button_right = 0;
+static bool_t button_save = 0;
 
+// static cpu_state_t cpuState;
 
 void drawTriangle(uint16_t x, uint16_t y) {
   // Draw a simple downward pointing triangle for icon selection
@@ -77,23 +78,44 @@ void updateDisplay() {
   }
 }
 
+void save_state() {
+  // cpu_get_state(&cpuState);
+  // Save CPU state as a blob
+  // preferences.putBytes("cpuState", &cpuState, sizeof(cpu_state_t));
+  // Save memory as a blob
+  // preferences.putBytes("memory", cpuState.memory, MEMORY_SIZE);
+  // Mark as initialized
+  // preferences.putUChar("initialized", 12);
+  // preferences.end();
+  // Serial.println("Saved");
+  // Show save notification on screen
+  M5Cardputer.Display.fillScreen(TFT_DARKGREEN);
+  M5Cardputer.Display.setCursor(5, 60);
+  M5Cardputer.Display.println("Saving ...");
+  M5Cardputer.Display.print("\nNot Yet Implemented!");
+  delay(1000);
+}
+
 void handleInput() {
     M5Cardputer.update();
     // Map keyboard keys to Tamagotchi buttons
     bool prev_left = button_left;
     bool prev_middle = button_middle;
     bool prev_right = button_right;
+    bool prev_save = button_save;
 
     button_left = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_LEFT);
     button_middle = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_CENTER) ||
                     M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)  ||
                     M5Cardputer.Keyboard.isKeyPressed(' ');
     button_right = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_RIGHT);
+    button_save = M5Cardputer.Keyboard.isKeyPressed('z');
 
     // Debug: print button state changes
     if (button_left && !prev_left) USBSerial.println("LEFT button pressed");
     if (button_middle && !prev_middle) USBSerial.println("MIDDLE button pressed");
     if (button_right && !prev_right) USBSerial.println("RIGHT button pressed");
+    if (button_save && !prev_save) USBSerial.println("SAVE button pressed");
 }
 
 // HAL callback: Called when a pixel needs to be set/cleared
@@ -112,12 +134,12 @@ void hal_set_lcd_icon(u8_t icon, bool_t val) {
 
 // HAL callback: Called to set CPU frequency (not used on ESP32)
 void hal_set_frequency(u32_t freq) {
-    // Not implemented for ESP32
+    // Not implemented
 }
 
 // HAL callback: Called to enable/disable buzzer
 void hal_play_frequency(bool_t en) {
-    // Not implemented for now
+    // Not implemented
 }
 
 void hal_halt(void) {
@@ -167,11 +189,14 @@ void hal_log(log_level_t level, char *buff, ...) {
 // HAL callback: Handle button input
 int hal_handler(void) {
     handleInput();
+    if (button_save) {
+      save_state();
+    };
+
     // Set button states using proper enum values
     tamalib_set_button(BTN_LEFT, button_left ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);
     tamalib_set_button(BTN_MIDDLE, button_middle ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);
     tamalib_set_button(BTN_RIGHT, button_right ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);
-
     return 1; // Continue running
 }
 
