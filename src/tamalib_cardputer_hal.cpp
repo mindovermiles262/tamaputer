@@ -406,13 +406,8 @@ bool_t load_from_state()
 void handle_input()
 {
     M5Cardputer.update();
-    // Map keyboard keys to Tamagotchi buttons
-    bool prev_left = button_left;
-    bool prev_middle = button_middle;
-    bool prev_right = button_right;
-    bool prev_save = button_save;
-    bool prev_pause = button_pause;
 
+    // Map keyboard keys to Tamagotchi buttons
     button_left = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_LEFT);
     button_middle =
         M5Cardputer.Keyboard.isKeyPressed(M5_BTN_CENTER) ||
@@ -421,18 +416,6 @@ void handle_input()
     button_right = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_RIGHT);
     button_save = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_SAVE);
     button_pause = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_PAUSE);
-
-    // Debug: print button state changes
-    if (button_left && !prev_left)
-        USBSerial.println("LEFT button pressed");
-    if (button_middle && !prev_middle)
-        USBSerial.println("MIDDLE button pressed");
-    if (button_right && !prev_right)
-        USBSerial.println("RIGHT button pressed");
-    if (button_save && !prev_save)
-        USBSerial.println("SAVE button pressed");
-    if (button_pause && !prev_pause)
-        USBSerial.println("PAUSE button pressed");
 }
 
 // HAL callback: Called when a pixel needs to be set/cleared
