@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @brief Tamagotchi Emulator for M5Stack Cardputer using tamalib
- * @version 0.1
+ * @version 1.0.0
  **/
 
 #include <M5Cardputer.h>
