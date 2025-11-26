@@ -46,7 +46,7 @@ If you haven't already, install PlatformIO IDE or PlatformIO Core CLI.
 ```bash
 cd tamaputer
 git submodule update --init --recursive
-pio lib install  # Install dependencies
+pio pkg install  # Install dependencies
 pio run          # Build the project
 ```
 
