@@ -35,6 +35,7 @@ static bool_t button_middle = 0;
 static bool_t button_right = 0;
 static bool_t button_save = 0;
 static bool_t button_pause = 0;
+static bool_t button_help = 0;
 
 // static cpu_state_t cpuState;
 
@@ -193,7 +194,7 @@ void save_state()
     delay(1500);
 }
 
-// Convert ROM from 4-byte format to 3-byte packed format (like TamaRomConvert.java)
+// Convert ROM from 4-byte format to 3-byte packed format
 // Input: rom_data (12288 bytes), Output: packed_rom (9216 bytes)
 void convert_rom_to_12bit(const uint8_t *rom_data, uint8_t *packed_rom)
 {
@@ -293,13 +294,17 @@ void pause_game()
     // Function to draw pause screen
     auto draw_pause_screen = []()
     {
-        M5Cardputer.Display.fillRect(20, 50, 200, 35, TFT_BLACK);
-        M5Cardputer.Display.drawRect(20, 50, 200, 35, TFT_WHITE);
+        M5Cardputer.Display.fillRect(20, 50, 200, 50, TFT_BLACK);
+        M5Cardputer.Display.drawRect(20, 50, 200, 50, TFT_WHITE);
 
         M5Cardputer.Display.setTextColor(TFT_YELLOW);
         M5Cardputer.Display.setCursor(90, 60);
         M5Cardputer.Display.setTextSize(2);
         M5Cardputer.Display.println("PAUSED");
+        M5Cardputer.Display.setTextColor(TFT_WHITE);
+        M5Cardputer.Display.setCursor(45, 80);
+        M5Cardputer.Display.setTextSize(1);
+        M5Cardputer.Display.println("UP/DOWN : Vol  ESC : Help");
     };
 
     // Draw initial pause screen
@@ -362,6 +367,39 @@ void pause_game()
     }
 
     update_display();
+}
+
+void draw_help_screen()
+{
+    M5Cardputer.Display.setCursor(0, 10);
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.setTextSize(2);
+    M5Cardputer.Display.setTextColor(TFT_GREEN);
+    M5Cardputer.Display.println("Controls");
+    M5Cardputer.Display.println("  A : CTRL");
+    M5Cardputer.Display.println("  B : OPT");
+    M5Cardputer.Display.println("  C : ALT");
+
+    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.println("Menu");
+    M5Cardputer.Display.println("  P : Pause");
+    M5Cardputer.Display.println("  Z : Save");
+}
+
+void display_help()
+{
+    draw_help_screen();
+    while (M5Cardputer.Keyboard.isPressed())
+    {
+        M5Cardputer.update();
+        delay(10);
+    }
+
+    while (!M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed())
+    {
+        M5Cardputer.update();
+        delay(100);
+    }
 }
 
 bool_t load_from_state()
@@ -469,6 +507,7 @@ void handle_input()
     button_right = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_RIGHT);
     button_save = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_SAVE);
     button_pause = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_PAUSE);
+    button_help = M5Cardputer.Keyboard.isKeyPressed(M5_BTN_HELP);
 }
 
 // HAL callback: Called when a pixel needs to be set/cleared
@@ -567,6 +606,7 @@ int hal_handler(void)
 {
     static bool prev_save = 0;
     static bool prev_pause = 0;
+    static bool prev_help = 0;
 
     handle_input();
 
@@ -583,6 +623,11 @@ int hal_handler(void)
         pause_game();
     }
     prev_pause = button_pause;
+
+    if (button_help && !prev_help)
+    {
+        display_help();
+    }
 
     // Set button states using proper enum values
     tamalib_set_button(BTN_LEFT, button_left ? BTN_STATE_PRESSED : BTN_STATE_RELEASED);

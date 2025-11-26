@@ -17,6 +17,7 @@ extern "C"
 String ROM_FILE = "/tamaputer/tama.b";
 String ROM_STATE = "/tamaputer/tama.state";
 
+int TAMA_FRAMERATE = 10;
 static timestamp_t screen_ts = 0;
 static u32_t ts_freq;
 hal_t *g_hal;
@@ -37,24 +38,6 @@ static hal_t hal = {
     .play_frequency = hal_play_frequency,
     .handler = hal_handler,
 };
-
-void display_help()
-{
-    M5Cardputer.Display.setCursor(0, 10);
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextSize(2);
-    M5Cardputer.Display.setTextColor(TFT_GREEN);
-    M5Cardputer.Display.println("Controls");
-    M5Cardputer.Display.println("  A : CTRL");
-    M5Cardputer.Display.println("  B : OPT");
-    M5Cardputer.Display.println("  C : ALT");
-
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
-    M5Cardputer.Display.println("Menu");
-    M5Cardputer.Display.println("  P : Pause");
-    M5Cardputer.Display.println("  Z : Save");
-    delay(5000);
-}
 
 void setup()
 {
@@ -84,8 +67,10 @@ void setup()
     M5Cardputer.Display.setTextColor(TFT_WHITE);
     M5Cardputer.Display.setTextSize(2);
 
-    M5Cardputer.Display.setCursor(5, 80);
+    M5Cardputer.Display.setCursor(5, 60);
     M5Cardputer.Display.println("Hold");
+    M5Cardputer.Display.setCursor(5, 80);
+    M5Cardputer.Display.println("  ESC: Help");
     M5Cardputer.Display.setCursor(5, 100);
     M5Cardputer.Display.println("  SPACE: New Game");
     delay(2500);
@@ -102,8 +87,8 @@ void setup()
     USBSerial.print("[*] Initializing Tamalib ... ");
     g_hal = &hal;
     tamalib_register_hal(&hal);
-    tamalib_set_framerate(10); // Set framerate to 10 FPS
-    ts_freq = 1000000;         // 1MHz
+    tamalib_set_framerate(TAMA_FRAMERATE);
+    ts_freq = 1000000; // 1MHz
     tamalib_init(rom_data, NULL, ts_freq);
     USBSerial.println("Done.");
 

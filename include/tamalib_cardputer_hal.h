@@ -3,8 +3,9 @@
 
 #include <M5Cardputer.h>
 
-extern "C" {
-    #include <tamalib.h>
+extern "C"
+{
+#include <tamalib.h>
 }
 
 // Input controls
@@ -13,6 +14,7 @@ extern "C" {
 #define M5_BTN_RIGHT KEY_LEFT_ALT
 #define M5_BTN_SAVE 'z'
 #define M5_BTN_PAUSE 'p'
+#define M5_BTN_HELP '`'
 
 // Tamagotchi LCD dimensions
 #define LCD_WIDTH 32
@@ -25,7 +27,8 @@ extern "C" {
 #define ICON_COUNT 8
 
 // HAL callback functions required by tamalib
-extern "C" {
+extern "C"
+{
     int hal_handler(void);
     void hal_set_lcd_matrix(u8_t x, u8_t y, bool_t val);
     void hal_set_lcd_icon(u8_t icon, bool_t val);
@@ -41,9 +44,10 @@ extern "C" {
 
 // Helper functions
 void update_display();
+void display_help();
 void handle_input();
 void save_state();
-u12_t* load_rom();
+u12_t *load_rom();
 bool_t load_from_state();
 
 #endif // TAMALIB_HAL_H
