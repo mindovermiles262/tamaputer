@@ -9,8 +9,10 @@ extern "C" {
 
 // Input controls
 #define M5_BTN_LEFT KEY_LEFT_CTRL
-#define M5_BTN_CENTER ' '
-#define M5_BTN_RIGHT KEY_BACKSPACE
+#define M5_BTN_CENTER KEY_OPT
+#define M5_BTN_RIGHT KEY_LEFT_ALT
+#define M5_BTN_SAVE 'z'
+#define M5_BTN_PAUSE 'p'
 
 // Tamagotchi LCD dimensions
 #define LCD_WIDTH 32
@@ -38,7 +40,10 @@ extern "C" {
 }
 
 // Helper functions
-void updateDisplay();
-void handleInput();
+void update_display();
+void handle_input();
+void save_state();
+u12_t* load_rom();
+bool_t load_from_state();
 
 #endif // TAMALIB_HAL_H
