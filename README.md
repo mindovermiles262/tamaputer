@@ -9,7 +9,6 @@ A Tamagotchi emulator for the M5Stack Cardputer using the tamalib library.
 - Optimized display rendering on the Cardputer's 240x135 LCD
 - Keyboard input mapping for the three Tamagotchi buttons
 - Icon display for game status
-- Automatic ROM detection (tries `tama.b` and `rom.bin`)
 
 ## Hardware Requirements
 
@@ -21,11 +20,22 @@ A Tamagotchi emulator for the M5Stack Cardputer using the tamalib library.
 
 The Cardputer keyboard is mapped to the three Tamagotchi buttons:
 
-- **Left Button**: `A` key
-- **Middle Button**: `S` key
-- **Right Button**: `D` key
+- **Left Button**: `CTRL` key
+- **Middle Button**: `OPT` key
+- **Right Button**: `ALT` key
+- **Pause Button**: `P` key
+- **Save Button**: `Z` key
+- **Help Button**: `ESC` key
 
-## Setup Instructions
+# Setup Instructions
+
+## M5 Launcher (Easy)
+
+- Download the latest `tamaputer.bin` from the releases page and place it on your SD card.
+- Place the ROM file (`tama.b`) in the `tamaputer` directory on your SD Card. Create this directory if it does not exist.
+- Start your Cardputer and use M5 Launcher to start `tamamputer.bin`
+
+## Build & Upload
 
 ### 1. Install PlatformIO
 
@@ -35,6 +45,7 @@ If you haven't already, install PlatformIO IDE or PlatformIO Core CLI.
 
 ```bash
 cd tamaputer
+git submodule update --init --recursive
 pio lib install  # Install dependencies
 pio run          # Build the project
 ```
@@ -45,17 +56,16 @@ pio run          # Build the project
 
 1. Obtain a legal ROM dump from your own device or a legal source
 2. The ROM should be exactly **40960 bytes** (40KB) for the original Tamagotchi P1
-3. Copy the ROM file to your SD card root directory as either:
-   - `tama.b` (preferred)
-   - `rom.bin` (alternative)
-
-The emulator will automatically try both filenames on startup.
+3. Copy the ROM file to your SD card root directory as `/tamaputer/tama.b`
 
 ### 4. Upload to Device
 
 ```bash
 pio run -t upload
 ```
+
+
+## Troubleshooting
 
 If `intelhex` not found:
 
@@ -66,133 +76,17 @@ source ~/.platformio/penv/bin/activate
 (penv) $ pip install intelhex
 ```
 
-## Display Layout
-
-```
-+----------------------------------+
-| FOOD GAME LIGHT DUCK MAIL ... |  <- Icons
-+----------------------------------+
-|                                  |
-|    +--------------------+        |
-|    |                    |        |
-|    |  Tamagotchi LCD    |        |
-|    |   (32x16 pixels)   |        |
-|    |                    |        |
-|    +--------------------+        |
-|                                  |
-+----------------------------------+
-```
-
-## Technical Details
-
-### Display
-
-- Native Tamagotchi resolution: 32x16 pixels
-- Scaled up by 6x for the Cardputer display
-- Icons displayed as text at the top
-- Pixels are inverted (black on light grey) to match original LCD appearance
-
-### Performance
-
-- Emulation runs at approximately 1MHz (configurable)
-- Display updates only when pixels change (dirty flag optimization)
-- Input polling every frame
-
-### Memory
-
-- ROM: 40KB (loaded from SD card into RAM)
-- Emulator state: ~2KB RAM
-- Display buffer: 512 bytes (32x16 bits)
-- Total RAM usage: ~43KB
-
-## Troubleshooting
-
-### SD Card Issues
-
-**"SD card init failed!"**
-- Ensure the SD card is properly inserted
-- Try formatting the SD card as FAT32
-- Test the SD card in another device first
-- Some SD cards may not be compatible - try a different brand
-
-**"No ROM found!"**
-- Verify the ROM file is named exactly `tama.b` or `rom.bin`
-- Check the ROM is in the root directory (not in a folder)
-- Confirm the file is exactly 40960 bytes
-- Try copying the file again to the SD card
-
-**"Wrong size!"**
-- Your ROM file is not 40960 bytes
-- Re-dump your ROM or verify the source
-- Check the file wasn't corrupted during transfer
-
-### Build Errors
-
-If you get tamalib include errors:
-```bash
-git submodule update --init --recursive  # Initialize tamalib submodule
-pio lib install  # Re-install dependencies
-rm -rf .pio      # Clean build
-pio run          # Rebuild
-```
-
-### Display Issues
-
-- If display is garbled, check that the ROM loaded successfully
-- Try reducing PIXEL_SIZE in `tamalib_hal.h`
-- Check that M5Cardputer libraries are up to date
-- The emulator may take a moment to initialize after loading
-
-### No Response to Buttons
-
-- Ensure the ROM loaded successfully (check startup messages)
-- Verify M5Cardputer.update() is called in loop
-- Check keyboard mapping in `tamalib_hal.cpp`
-
-## Advanced Features
-
-### Save States
-
-To add save/load functionality, implement SPIFFS or LittleFS storage:
-
-```cpp
-// Save state
-void saveState() {
-    state_t* state = tamalib_get_state();
-    File f = SPIFFS.open("/tamagotchi.sav", "w");
-    f.write((uint8_t*)state, sizeof(state_t));
-    f.close();
-}
-
-// Load state
-void loadState() {
-    if (SPIFFS.exists("/tamagotchi.sav")) {
-        File f = SPIFFS.open("/tamagotchi.sav", "r");
-        state_t state;
-        f.readBytes((char*)&state, sizeof(state_t));
-        f.close();
-        tamalib_set_state(&state);
-    }
-}
-```
-
-### Sound
-
-Add a buzzer to a GPIO pin and implement the sound callback in the HAL.
-
 ## Credits
 
 - **tamalib**: https://github.com/jcrona/tamalib by Jean-Christophe Rona
+- **ArduinoGotchi**: https://github.com/GaryZ88/ArduinoGotchi by GaryZ88
 - **M5Stack**: For the Cardputer hardware and libraries
 - **Original Tamagotchi**: Bandai
 
-## License
-
-This project is for educational purposes only. Tamagotchi is a trademark of Bandai.
-You must own a legal copy of the Tamagotchi ROM to use this emulator.
 
 ## Resources
 
 - [tamalib GitHub](https://github.com/jcrona/tamalib)
+- [ArduinoGotchi Github](https://github.com/GaryZ88/ArduinoGotchi)
 - [M5Stack Cardputer](https://shop.m5stack.com/products/m5stack-cardputer)
 - [PlatformIO Documentation](https://docs.platformio.org/)
