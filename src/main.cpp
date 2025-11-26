@@ -38,6 +38,24 @@ static hal_t hal = {
     .handler = hal_handler,
 };
 
+void display_help()
+{
+    M5Cardputer.Display.setCursor(0, 10);
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.setTextSize(2);
+    M5Cardputer.Display.setTextColor(TFT_GREEN);
+    M5Cardputer.Display.println("Controls");
+    M5Cardputer.Display.println("  A : CTRL");
+    M5Cardputer.Display.println("  B : OPT");
+    M5Cardputer.Display.println("  C : ALT");
+
+    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.println("Menu");
+    M5Cardputer.Display.println("  P : Pause");
+    M5Cardputer.Display.println("  Z : Save");
+    delay(5000);
+}
+
 void setup()
 {
     // Initialize USB Serial for debugging FIRST (ESP32-S3 uses USBSerial)
@@ -48,6 +66,10 @@ void setup()
     // Initialize M5Cardputer
     auto cfg = M5.config();
     M5Cardputer.begin(cfg);
+
+    // Initialize speaker
+    M5Cardputer.Speaker.begin();
+    M5Cardputer.Speaker.setVolume(32); // Default volume (adjustable in pause menu)
 
     // Show splash screen
     M5Cardputer.Display.fillScreen(TFT_BLACK);
@@ -86,7 +108,11 @@ void setup()
     USBSerial.println("Done.");
 
     // Load saved state if it exists
-    if (!keyStartNewGame)
+    if (keyStartNewGame)
+    {
+        display_help();
+    }
+    else
     {
         load_from_state();
     }

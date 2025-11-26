@@ -281,30 +281,83 @@ u12_t *load_rom()
 
 void pause_game()
 {
-    M5Cardputer.Display.setTextColor(TFT_YELLOW);
-    M5Cardputer.Display.setCursor(80, 60);
-    M5Cardputer.Display.println("PAUSED");
+    static uint8_t volume = 32; // Store volume between pauses
 
+    // Wait for pause key release
     while (M5Cardputer.Keyboard.isPressed())
     {
         M5Cardputer.update();
         delay(10);
     }
+
+    // Function to draw pause screen
+    auto draw_pause_screen = []()
+    {
+        M5Cardputer.Display.fillRect(20, 50, 200, 35, TFT_BLACK);
+        M5Cardputer.Display.drawRect(20, 50, 200, 35, TFT_WHITE);
+
+        M5Cardputer.Display.setTextColor(TFT_YELLOW);
+        M5Cardputer.Display.setCursor(90, 60);
+        M5Cardputer.Display.setTextSize(2);
+        M5Cardputer.Display.println("PAUSED");
+    };
+
+    // Draw initial pause screen
+    draw_pause_screen();
 
     bool unpaused = false;
     while (!unpaused)
     {
         M5Cardputer.update();
-        if (M5Cardputer.Keyboard.isPressed())
-        {
-            unpaused = true;
-        }
-        delay(10);
-    }
 
-    while (M5Cardputer.Keyboard.isPressed())
-    {
-        M5Cardputer.update();
+        // Handle input
+        if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed())
+        {
+            bool volume_changed = false;
+
+            if (M5Cardputer.Keyboard.isKeyPressed(';')) // Up arrow (semicolon key)
+            {
+                // Increase volume
+                if (volume <= 245)
+                    volume += 10;
+                else
+                    volume = 255;
+                M5Cardputer.Speaker.setVolume(volume);
+                M5Cardputer.Speaker.tone(2000, 50); // Play test beep
+                volume_changed = true;
+            }
+            else if (M5Cardputer.Keyboard.isKeyPressed('.')) // Down arrow (period key)
+            {
+                // Decrease volume
+                if (volume >= 10)
+                    volume -= 10;
+                else
+                    volume = 0;
+                M5Cardputer.Speaker.setVolume(volume);
+                if (volume > 0)
+                    M5Cardputer.Speaker.tone(2000, 50); // Play test beep
+                volume_changed = true;
+            }
+            else
+            {
+                // Any other key unpauses
+                unpaused = true;
+            }
+
+            // Redraw if volume changed
+            if (volume_changed)
+            {
+                draw_pause_screen();
+            }
+
+            // Wait for key release
+            while (M5Cardputer.Keyboard.isPressed())
+            {
+                M5Cardputer.update();
+                delay(10);
+            }
+        }
+
         delay(10);
     }
 
@@ -445,7 +498,16 @@ void hal_set_frequency(u32_t freq)
 // HAL callback: Called to enable/disable buzzer
 void hal_play_frequency(bool_t en)
 {
-    // Not implemented
+    if (en)
+    {
+        // Play a beep tone at 4000 Hz
+        M5Cardputer.Speaker.tone(2000, 50);
+    }
+    else
+    {
+        // Stop the tone
+        M5Cardputer.Speaker.stop();
+    }
 }
 
 void hal_halt(void)
