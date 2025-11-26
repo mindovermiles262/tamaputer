@@ -107,6 +107,7 @@ void update_display()
 void save_state()
 {
     M5Cardputer.Display.fillScreen(TFT_DARKGREEN);
+    M5Cardputer.Display.setTextSize(2);
     M5Cardputer.Display.setCursor(5, 60);
     M5Cardputer.Display.println("Saving state...");
 
