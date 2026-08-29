@@ -27,6 +27,11 @@ The Cardputer keyboard is mapped to the three Tamagotchi buttons:
 - **Save Button**: `Z` key
 - **Help Button**: `ESC` key
 
+### Pause Menu
+
+- **Adjust Volume**: Left and Right Arrows
+- **Adjust Speed**: Up and Down Arrows
+
 # Setup Instructions
 
 ## M5 Launcher (Easy)

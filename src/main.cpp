@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @brief Tamagotchi Emulator for M5Stack Cardputer using tamalib
- * @version 1.0.0
+ * @version 1.2.0
  **/
 
 #include <M5Cardputer.h>
@@ -17,6 +17,10 @@ extern "C"
 String ROM_FILE = "/tamaputer/tama.b";
 String ROM_STATE = "/tamaputer/tama.state";
 
+// Speed multiplier for Tamaputer.
+uint8_t EMULATION_SPEED = 1;
+
+// How fast to refresh the LCD
 int TAMA_FRAMERATE = 10;
 static timestamp_t screen_ts = 0;
 static u32_t ts_freq;
@@ -87,6 +91,7 @@ void setup()
     USBSerial.print("[*] Initializing Tamalib ... ");
     g_hal = &hal;
     tamalib_register_hal(&hal);
+    // How often LCD is redrawn
     tamalib_set_framerate(TAMA_FRAMERATE);
     ts_freq = 1000000; // 1MHz
     tamalib_init(rom_data, NULL, ts_freq);

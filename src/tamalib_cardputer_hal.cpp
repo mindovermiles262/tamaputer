@@ -20,6 +20,7 @@
 // External variables from main.cpp
 extern String ROM_STATE;
 extern String ROM_FILE;
+extern uint8_t EMULATION_SPEED;
 
 // LCD matrix buffer
 static bool_t lcd_matrix[LCD_HEIGHT][LCD_WIDTH];
@@ -39,13 +40,17 @@ static bool_t button_help = 0;
 
 // static cpu_state_t cpuState;
 
-void draw_triangle(uint16_t x, uint16_t y)
+// Off-screen frame buffer. Draw here then update to elimiate flashing
+static M5Canvas canvas(&M5Cardputer.Display);
+static bool canvas_ready = false;
+
+void draw_triangle(M5Canvas &target, uint16_t x, uint16_t y)
 {
     // Draw a simple downward pointing triangle for icon selection
-    M5Cardputer.Display.fillTriangle(x + 3, y, x, y + 3, x + 6, y + 3, TFT_WHITE);
+    target.fillTriangle(x + 3, y, x, y + 3, x + 6, y + 3, TFT_WHITE);
 }
 
-void draw_icon_bitmap(uint16_t x, uint16_t y, const uint8_t *bitmap)
+void draw_icon_bitmap(M5Canvas &target, uint16_t x, uint16_t y, const uint8_t *bitmap)
 {
     // Draw 16x9 icon bitmap
     for (int by = 0; by < 9; by++)
@@ -56,7 +61,7 @@ void draw_icon_bitmap(uint16_t x, uint16_t y, const uint8_t *bitmap)
             uint8_t bit_idx = 7 - (bx % 8);
             if (bitmap[byte_idx] & (1 << bit_idx))
             {
-                M5Cardputer.Display.fillRect(x + bx * 2, y + by * 2, 2, 2, TFT_WHITE);
+                target.fillRect(x + bx * 2, y + by * 2, 2, 2, TFT_WHITE);
             }
         }
     }
@@ -64,7 +69,13 @@ void draw_icon_bitmap(uint16_t x, uint16_t y, const uint8_t *bitmap)
 
 void update_display()
 {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    if (!canvas_ready)
+    {
+        canvas.createSprite(M5Cardputer.Display.width(), M5Cardputer.Display.height());
+        canvas_ready = true;
+    }
+
+    canvas.fillScreen(TFT_BLACK);
     // Calculate centering offsets
     uint16_t displayStartX = 20;
     uint16_t displayStartY = 10;
@@ -77,7 +88,7 @@ void update_display()
             if (lcd_matrix[y][x])
             {
                 // Draw pixel scaled up by TAMA_PIXEL_SIZE
-                M5Cardputer.Display.fillRect(
+                canvas.fillRect(
                     displayStartX + x * TAMA_PIXEL_SIZE,
                     displayStartY + y * TAMA_PIXEL_SIZE,
                     TAMA_PIXEL_SIZE,
@@ -96,12 +107,14 @@ void update_display()
         // Draw selection triangle if icon is selected
         if (lcd_icons[i])
         {
-            draw_triangle(iconX + 6, iconY);
+            draw_triangle(canvas, iconX + 6, iconY);
         }
 
         // Draw the icon bitmap
-        draw_icon_bitmap(iconX, iconY + 8, bitmaps + i * 18);
+        draw_icon_bitmap(canvas, iconX, iconY + 8, bitmaps + i * 18);
     }
+
+    canvas.pushSprite(0, 0);
 }
 
 void save_state()
@@ -295,8 +308,8 @@ void pause_game()
     // Function to draw pause screen
     auto draw_pause_screen = []()
     {
-        M5Cardputer.Display.fillRect(20, 50, 200, 50, TFT_BLACK);
-        M5Cardputer.Display.drawRect(20, 50, 200, 50, TFT_WHITE);
+        M5Cardputer.Display.fillRect(20, 50, 200, 60, TFT_BLACK);
+        M5Cardputer.Display.drawRect(20, 50, 200, 60, TFT_WHITE);
 
         M5Cardputer.Display.setTextColor(TFT_YELLOW);
         M5Cardputer.Display.setCursor(90, 60);
@@ -306,6 +319,8 @@ void pause_game()
         M5Cardputer.Display.setCursor(45, 80);
         M5Cardputer.Display.setTextSize(1);
         M5Cardputer.Display.println("UP/DOWN : Vol  ESC : Help");
+        M5Cardputer.Display.setCursor(45, 92);
+        M5Cardputer.Display.printf("LEFT/RIGHT : Speed (%dx)\n", EMULATION_SPEED);
     };
 
     // Draw initial pause screen
@@ -319,7 +334,7 @@ void pause_game()
         // Handle input
         if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed())
         {
-            bool volume_changed = false;
+            bool redraw = false;
 
             if (M5Cardputer.Keyboard.isKeyPressed(';')) // Up arrow (semicolon key)
             {
@@ -330,7 +345,7 @@ void pause_game()
                     volume = 255;
                 M5Cardputer.Speaker.setVolume(volume);
                 M5Cardputer.Speaker.tone(2000, 50); // Play test beep
-                volume_changed = true;
+                redraw = true;
             }
             else if (M5Cardputer.Keyboard.isKeyPressed('.')) // Down arrow (period key)
             {
@@ -342,7 +357,26 @@ void pause_game()
                 M5Cardputer.Speaker.setVolume(volume);
                 if (volume > 0)
                     M5Cardputer.Speaker.tone(2000, 50); // Play test beep
-                volume_changed = true;
+                redraw = true;
+            }
+            else if (M5Cardputer.Keyboard.isKeyPressed('/')) // Right arrow (slash key)
+            {
+                if (EMULATION_SPEED < SPEED_MAX)
+                {
+                    EMULATION_SPEED++;
+                    tamalib_set_speed(EMULATION_SPEED);
+                }
+                redraw = true;
+            }
+            else if (M5Cardputer.Keyboard.isKeyPressed(',')) // Left arrow (comma key)
+            {
+                // Decrease emulation speed
+                if (EMULATION_SPEED > SPEED_MIN)
+                {
+                    EMULATION_SPEED--;
+                    tamalib_set_speed(EMULATION_SPEED);
+                }
+                redraw = true;
             }
             else
             {
@@ -350,8 +384,8 @@ void pause_game()
                 unpaused = true;
             }
 
-            // Redraw if volume changed
-            if (volume_changed)
+            // Redraw if a setting changed
+            if (redraw)
             {
                 draw_pause_screen();
             }
@@ -383,7 +417,7 @@ void draw_help_screen()
 
     M5Cardputer.Display.setTextColor(TFT_WHITE);
     M5Cardputer.Display.println("Menu");
-    M5Cardputer.Display.println("  P : Pause");
+    M5Cardputer.Display.println("  P : Pause (Vol & Speed)");
     M5Cardputer.Display.println("  Z : Save");
 }
 
@@ -565,16 +599,30 @@ void hal_update_screen(void)
     update_display();
 }
 
-// HAL callback: Get current timestamp in 1/32768 second units
+// HAL callback: Get current timestamp in microseconds
 timestamp_t hal_get_timestamp(void)
 {
-    return millis() * 1000;
+    return micros();
 }
 
 // HAL callback: Sleep until timestamp
 void hal_sleep_until(timestamp_t ts)
 {
-    // Not Implemented
+    int32_t diff = (int32_t)(ts - micros());
+    if (diff <= 0)
+    {
+        return;
+    }
+
+    // Coarse-grained wait (yields to other tasks) for the bulk of the delay,
+    // then busy-wait the remainder for microsecond-level accuracy.
+    if (diff > 1000)
+    {
+        delay((diff - 500) / 1000);
+    }
+    while ((int32_t)(ts - micros()) > 0)
+    {
+    }
 }
 
 // HAL callback: Check if logging is enabled for a level

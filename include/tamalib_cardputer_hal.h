@@ -26,6 +26,10 @@ extern "C"
 // Icon positions
 #define ICON_COUNT 8
 
+// Emulation speed percentage
+#define SPEED_MIN 1
+#define SPEED_MAX 10
+
 // HAL callback functions required by tamalib
 extern "C"
 {
