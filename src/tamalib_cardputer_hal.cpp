@@ -401,6 +401,7 @@ void pause_game()
         delay(10);
     }
 
+    cpu_sync_ref_timestamp();
     update_display();
 }
 
