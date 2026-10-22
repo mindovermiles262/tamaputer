@@ -401,8 +401,6 @@ void pause_game()
         delay(10);
     }
 
-    // Resync after pause so speed changes (especially back to 1x) take effect.
-    // Stale ref_ts makes wait_for_cycles skip sleeps and run uncapped.
     cpu_sync_ref_timestamp();
     update_display();
 }
